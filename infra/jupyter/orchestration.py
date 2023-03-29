@@ -303,9 +303,9 @@ def complete_ml(
                 # extract the metrics
                 metrics = run_dict['data']['metrics']
                 # retrieve historical metrics
-                print(metrics)
+                # print(metrics)
                 # print(best_metric, ' < ', metrics['Accuracy'])
-                if 'accuracy' in metrics and best_metric < metrics['Accuracy']):
+                if 'accuracy' in metrics and best_metric < metrics['Accuracy']:
                     best_metric = metrics['Accuracy']
 
         if 'accuracy' in model_obj and best_metric < model_obj['accuracy']:
