@@ -1,0 +1,3 @@
+docker network create --driver bridge hearth_attack_netw
+docker run -it --rm --user root -p 10000:8888 -p 8000:8000 -p 4200:4200 -v ${PWD}/infra/mlflow_server/local:/mlflow -e JUPYTER_ENABLE_LAB=yes -e JUPYTER_TOKEN=docker -e MLFLOW_TRACKING_URI=http://mlflow:5000 --network hearth_attack_netw --name jupyter -d hearth_attack_jupyter
+docker run -it -d --rm -p 5001:5000 -v ${PWD}/mlflow_server/local:/mlflow --network hearth_attack_netw --name mlflow hearth_attack_mlflow
