@@ -2,8 +2,6 @@ import mlflow
 from fastapi import FastAPI
 from pydantic import BaseModel
 
-import pandas as pd
-
 from modelling import run_inference
 from app_config import (APP_TITLE, APP_DESCRIPTION, APP_VERSION, MLFLOW_TRACKING_URI, REGISTERED_MODEL_URI)
 
@@ -47,20 +45,3 @@ def home():
 def predict(payload: InputData):
     heart_attack_prediction = run_inference(payload.dict(), pipeline)
     return {"heart_attack_prediction": heart_attack_prediction}
-
-
-# {
-#   "age": 63,
-#   "sex": 1,
-#   "cp": 3,
-#   "trestbps": 145,
-#   "chol": 233,
-#   "fbs": 1,
-#   "restecg": 0,
-#   "thalach": 150,
-#   "exang": 0,
-#   "oldpeak": 2.3,
-#   "slope": 0,
-#   "ca": 0,
-#   "thal": 1
-# }

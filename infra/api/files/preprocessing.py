@@ -1,25 +1,14 @@
-from typing import List
-
 import pandas as pd
 import os
-import numpy as np
+import mlflow
 import pickle
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score
-from sklearn.model_selection import GridSearchCV, train_test_split
-from sklearn.preprocessing import StandardScaler, FunctionTransformer
-from sklearn.base import BaseEstimator
-
-
-# def load_data(path: str) -> pd.DataFrame:
-#     return pd.read_csv(path)
 
 def get_x(
         df: pd.DataFrame,
 ) -> pd.DataFrame:
     """
-    Split original data in X and Y
-    :return {'x': df.iloc[:,0:-1], 'y': df.target}
+    Split original data
+    :return DataFrame without intrusive columns
     """
     X = df.loc[:,
         ['age', 'sex', 'cp', 'trestbps', 'chol', 'fbs', 'restecg', 'thalach', 'exang', 'oldpeak', 'slope', 'ca',
@@ -29,27 +18,39 @@ def get_x(
 
 def normalize_data(
         x: pd.DataFrame,
+        run_id: str
 ) -> pd.DataFrame:
     """
-    Find skew cols from dataframe and use FunctionTransformer to normalise values
+    Retrieve the scaler from mlflow using pickle
+    Transform data
     """
-    standardscaler = StandardScaler()
-    standardscaler.fit(x)
-    x = pd.DataFrame(standardscaler.transform(x), columns=x.columns[:])
+
+    client = mlflow.tracking.MlflowClient()
+    local_dir = "/tmp/artifact_downloads"
+    if not os.path.exists(local_dir):
+        os.mkdir(local_dir)
+    client.download_artifacts(run_id, '', local_dir)
+
+    with open('/tmp/artifact_downloads/ss.pickle', 'rb') as f:
+        ss = pickle.load(f)
+    transformed_data = ss.transform(x)
+    x = pd.DataFrame(transformed_data, columns=x.columns[:])
 
     return x
 
 
-def process_data(df: pd.DataFrame) -> pd.DataFrame:
+def process_data(
+        df: pd.DataFrame,
+        run_id: str
+) -> pd.DataFrame:
     """
-    Load data from a csv
-    Compute target (duration column) and apply threshold filters (optional)
-    Turn features to sparce matrix
-    :return final X and y
+    Format the dataset
+    Normalise values
+    :return final X
     """
 
     X = get_x(df)
-    X = normalize_data(X)
+    X = normalize_data(X, run_id)
 
     return X
 

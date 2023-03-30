@@ -7,13 +7,13 @@ def run_inference(payload: dict,
                   pipeline: Pipeline) -> float:
     """
     Takes a pre-fitted pipeline (dictvectorizer + linear regression model)
-    outputs the computed trip duration in minutes.
+    outputs if there is risk of heart attack (boolean).
     example payload:
-        {'PULocationID': 264, 'DOLocationID': 264, 'passenger_count': 1}
+        {"age": 37,"sex": 1,"cp": 2,"trestbps": 130,"chol": 250,"fbs": 0,"restecg": 1,"thalach": 187,"exang": 0,"oldpeak": 3.5,"slope": 0,"ca": 0,"thal": 2}
     """
-    # prep_features = process_data(payload)
     df = pd.DataFrame.from_dict(payload, orient='index').T
-    df = process_data(df)
+    print(pipeline._model_meta)
+    df = process_data(df, pipeline._model_meta.run_id)
 
     heart_attack_prediction = pipeline.predict(df)
     return heart_attack_prediction

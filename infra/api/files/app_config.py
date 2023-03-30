@@ -1,11 +1,7 @@
-import logging
-
 import pandas as pd
 
 # MLFLOW
-# MLFLOW_TRACKING_URI = "http://host.docker.internal:5001"
 MLFLOW_TRACKING_URI = "http://mlflow:5000"
-#MLFLOW_TRACKING_URI = "http://localhost:5001"
 
 STAGE = "Production"
 REGISTERED_MODEL_NAME = "hearth_attack_predi"

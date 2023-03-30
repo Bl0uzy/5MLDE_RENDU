@@ -144,40 +144,42 @@ def fix_skew(
     return x
 
 
-@task(name='normalize_data', tags=['preprocessing'])
-def normalize_data(
-        x: pd.DataFrame,
-) -> pd.DataFrame:
-    """
-    Use StandardScaler on numerical cols (all cols for this df)
-    """
-    standardscaler = StandardScaler()
-    standardscaler.fit(x)
-    x = pd.DataFrame(standardscaler.transform(x), columns=x.columns[:])
-    # x = standardscaler.transform(x)
+# @task(name='normalize_data', tags=['preprocessing'])
+# def normalize_data(
+#         x: pd.DataFrame,
+#         ss: StandardScaler = None
+# ) -> pd.DataFrame:
+#     """
+#     Use StandardScaler on numerical cols (all cols for this df)
+#     """
+#     if ss is None:
+#         ss = StandardScaler()
+#         ss.fit(x)
 
-    return x
+#     x = pd.DataFrame(ss.transform(x), columns=x.columns[:])
+
+#     return x
 
 
 @flow(name="Data processing", retries=1, retry_delay_seconds=30)
-def process_data(path: str, with_target: bool = True, skew_limit: int = 0.80) -> dict:
+def process_data(path: str,ss=None, with_target: bool = True, skew_limit: int = 0.80) -> dict:
     """
     Load data from a csv
     Normalize data and apply fix skew (optional)
     :return final X and y
     """
     df = load_data(path)
-
-
-
     X = get_x(df)
     X = fix_skew(X, skew_limit)
-    X = normalize_data(X)
+    if ss is None:
+        ss = StandardScaler()
+        ss.fit(X)
+    X = pd.DataFrame(ss.transform(X), columns=X.columns[:])
     y = None
     if with_target:
         y = get_y(df)
 
-    return {'X': X, 'y': y}
+    return {'X': X, 'y': y,'ss':ss}
 
 
 @task(name="Get best hyperparamters", tags=['Model'])
@@ -252,6 +254,7 @@ def complete_ml(
         train_path: str,
         test_path: str,
         save_model: bool = True,
+        save_ss: bool = True,
         local_storage: str = config.LOCAL_STORAGE
 ) -> None:
     """
@@ -267,7 +270,7 @@ def complete_ml(
     # train_data = process_data(train_path)
     # test_data = process_data(test_path)
 
-    mlflow.set_tracking_uri('http://mlflow:5000')
+    # mlflow.set_tracking_uri('http://mlflow:5000')
     mlflow_experiment_path = f"/mlflow/hearth_attack_predi"
     mlflow.set_experiment(mlflow_experiment_path)
 
@@ -284,14 +287,21 @@ def complete_ml(
         mlflow.set_tag("Level", "Development")
         mlflow.set_tag("Team", "Data Science")
         mlflow.log_param("skew_limit", config.SKEW_LIMIT)
-        train_data = process_data(train_path,True,config.SKEW_LIMIT)
-        test_data = process_data(test_path,True,config.SKEW_LIMIT)
+        train_data = process_data(train_path,None,True,config.SKEW_LIMIT)
+        test_data = process_data(test_path,train_data['ss'],True,config.SKEW_LIMIT)
+        print(train_data['X'])
         mlflow.log_param("train_set_size", train_data['X'].shape[0])
         mlflow.log_param("test_set_size", test_data['X'].shape[0])
         model_obj = train_and_predict(train_data['X'], train_data['y'], test_data['X'],test_data['y'])
         mlflow.log_param("HyperParameters", model_obj['hyperparameters'])
         mlflow.log_metric("Accuracy", model_obj['accuracy'])
         mlflow.sklearn.log_model(model_obj['model'], "models")
+
+        if save_model:
+            save_pickle(f"{local_storage}/model.pickle", model_obj)
+        if save_ss:
+            save_pickle(f"{local_storage}/ss.pickle", train_data["ss"])
+            mlflow.log_artifact(f"{local_storage}/ss.pickle")
 
         print(best_metric, ' < ', model_obj['accuracy'])
 
@@ -317,19 +327,20 @@ def complete_ml(
                 name="hearth_attack_predi", version=production_version.version, stage="Production"
             )
 
-        if save_model:
-            save_pickle(f"{local_storage}/model.pickle", model_obj)
+
 
 
 @flow(name="Batch inference", retries=1, retry_delay_seconds=30)
-def batch_inference(input_path, model=None, local_storage=config.LOCAL_STORAGE):
+def batch_inference(input_path, ss=None, model=None, local_storage=config.LOCAL_STORAGE):
     """
     Load model from folder
     Transforms input data
     Predict values using loaded model
     :return array of predictions
     """
-    data = process_data(input_path, False)
+    if not ss:
+        s = load_pickle(f"{local_storage}/ss.pickle")
+    data = process_data(input_path,ss, False)
     if not model:
         model = load_pickle(f"{local_storage}/model.pickle")["model"]
     return predict_target(data["X"], model)
@@ -339,7 +350,9 @@ def batch_inference(input_path, model=None, local_storage=config.LOCAL_STORAGE):
 # find_best_hyperparameters(data['X'], data['y'])
 # complete_ml('hearth_attack.csv', True)
 if __name__ == "__main__":
-    complete_ml(config.TRAIN_DATA,config.TEST_DATA, True)
+    complete_ml(config.TRAIN_DATA,config.TEST_DATA, True,True)
+    inference = batch_inference(config.INFERENCE_DATA)
+    print(inference)
 # run_ge_checkpoint(config.TRAIN_DATA)
-# inference = batch_inference(config.INFERENCE_DATA)
+#
 # print(inference)
