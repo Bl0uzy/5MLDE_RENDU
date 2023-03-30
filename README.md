@@ -54,6 +54,9 @@ Ouvrir un powershell et écrire les commandes suivantes :
 Il existe deux requêtes possibles : 
 - Une requête http://localhost:8002/ en GET permettant de voir si l'api fonctionne correctement.
 - Une requête http://localhost:8002/predict en POST avec un objet contenant les informations de la personne dans le body afin de prédire si elle a des chances d'avoir une crise cardiaque.
+	Le format doit être le même que l'exemple suivant : 
+  {"age": 24,"sex": 1,"cp": 1,"trestbps": 2,"chol": 150,"fbs": 243,"restecg": 1,"thalach": 1,"exang": 137,"oldpeak": 1,"slope": 1,"ca": 0,"thal": 2} 
+
 
 ## 7 - Executer l'entrainement du modèle regulierement
 Aller sur l'url http://localhost:10000.
@@ -63,4 +66,4 @@ Lancer un nouveau terminal dans l'environnement jupyter et taper la commande sui
 >python schedule.py
 
 Ce script s'executera tous les dimanches et enregistera le modèle en production si 
-ses reusltats sont superieurs aux précédents.
+ses resultats sont superieurs aux précédents.
