@@ -67,3 +67,6 @@ Lancer un nouveau terminal dans l'environnement jupyter et taper la commande sui
 
 Ce script s'executera tous les dimanches et enregistera le modèle en production si 
 ses resultats sont superieurs aux précédents.
+
+Pour voir les résultats de prefect, il faut ensuite excuter cette commande :
+>prefect orion start --host 0.0.0.0
